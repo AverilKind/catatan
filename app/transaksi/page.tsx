@@ -86,12 +86,12 @@ export default function TransaksiPage() {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (editingId) {
-      updateTransaction(editingId, values);
+      await updateTransaction(editingId, values);
       toast.success("Transaksi berhasil diubah");
     } else {
-      addTransaction({
+      await addTransaction({
         ...values,
         notes: values.notes || "",
       });

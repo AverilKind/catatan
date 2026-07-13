@@ -74,12 +74,12 @@ export default function OrangPage() {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (editingId) {
-      updatePerson(editingId, values);
+      await updatePerson(editingId, values);
       toast.success("Data berhasil diubah");
     } else {
-      addPerson({
+      await addPerson({
         name: values.name,
         phone: values.phone || "",
         address: values.address || "",
