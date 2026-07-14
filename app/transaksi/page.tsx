@@ -161,34 +161,36 @@ export default function TransaksiPage() {
       },
     },
     {
+      accessorKey: "notes",
+      header: "Catatan",
+      cell: ({ row }: any) => {
+        return <div className="text-muted-foreground">{row.getValue("notes") || "-"}</div>;
+      }
+    },
+    {
       id: "actions",
       enableHiding: false,
       cell: ({ row }: any) => {
         const transaction = row.original;
         return (
-          <DropdownMenu>
-            <DropdownMenuTrigger className={buttonVariants({ variant: "ghost", className: "h-8 w-8 p-0" })}>
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Aksi</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => openEdit(transaction)}>
-                <Edit className="mr-2 h-4 w-4" /> Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  if (confirm("Yakin ingin menghapus transaksi ini?")) {
-                    deleteTransaction(transaction.id);
-                    toast.success("Transaksi berhasil dihapus");
-                  }
-                }}
-                className="text-red-600"
-              >
-                <Trash className="mr-2 h-4 w-4" /> Hapus
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => openEdit(transaction)} title="Edit">
+              <Edit className="h-4 w-4 text-blue-500" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                if (confirm("Yakin ingin menghapus transaksi ini?")) {
+                  deleteTransaction(transaction.id);
+                  toast.success("Transaksi berhasil dihapus");
+                }
+              }}
+              title="Hapus"
+            >
+              <Trash className="h-4 w-4 text-red-500" />
+            </Button>
+          </div>
         );
       },
     },
