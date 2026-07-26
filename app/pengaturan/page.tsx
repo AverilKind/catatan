@@ -21,23 +21,8 @@ export default function PengaturanPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   const [showMigratePrompt, setShowMigratePrompt] = useState(false);
-  const [hasLocalData, setHasLocalData] = useState(false);
 
-  useEffect(() => {
-    // Check if there's old local data
-    const localData = localStorage.getItem("catatan-hutang-storage");
-    if (localData) {
-      try {
-        const parsed = JSON.parse(localData);
-        if (parsed.state && (parsed.state.people?.length > 0 || parsed.state.transactions?.length > 0)) {
-          // eslint-disable-next-line react-hooks/set-state-in-effect
-          setHasLocalData(true);
-        }
-      } catch (e) {
-        // ignore
-      }
-    }
-  }, []);
+
 
   const handleExportData = () => {
     const data = {
@@ -256,19 +241,17 @@ export default function PengaturanPage() {
               </div>
             </div>
 
-            {hasLocalData && (
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6 pt-6 border-t">
-                <div>
-                  <p className="font-medium text-blue-600 dark:text-blue-400">Migrasi Data Lokal</p>
-                  <p className="text-sm text-muted-foreground">
-                    Kami mendeteksi Anda memiliki data lama yang tersimpan di memori browser ini. Klik tombol ini untuk memindahkannya ke Database Online.
-                  </p>
-                </div>
-                <Button onClick={() => setShowMigratePrompt(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
-                  <Upload className="mr-2 h-4 w-4" /> Migrasi ke Database
-                </Button>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6 pt-6 border-t">
+              <div>
+                <p className="font-medium text-blue-600 dark:text-blue-400">Migrasi Data Lokal</p>
+                <p className="text-sm text-muted-foreground">
+                  Klik tombol ini untuk menyedot data lama yang masih tersimpan di memori browser ini ke Database Online.
+                </p>
               </div>
-            )}
+              <Button onClick={() => setShowMigratePrompt(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
+                <Upload className="mr-2 h-4 w-4" /> Migrasi ke Database
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
