@@ -191,7 +191,7 @@ export default function PengaturanPage() {
           <CardHeader>
             <CardTitle>Manajemen Data</CardTitle>
             <CardDescription>
-              Aplikasi ini menyimpan data hanya di perangkat Anda (Local Storage). Lakukan backup secara berkala.
+              Seluruh data Anda saat ini tersimpan aman di Database Online (Neon). Namun Anda tetap bisa mengunduh salinannya.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -207,25 +207,6 @@ export default function PengaturanPage() {
               </Button>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border rounded-lg">
-              <div className="space-y-1">
-                <p className="font-medium">Import Data (Restore)</p>
-                <p className="text-sm text-muted-foreground">
-                  Kembalikan data dari file JSON. Data saat ini akan tergantikan.
-                </p>
-              </div>
-              <input
-                type="file"
-                accept=".json"
-                ref={fileInputRef}
-                onChange={handleImportData}
-                className="hidden"
-                id="import-file"
-              />
-              <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-                <Upload className="mr-2 h-4 w-4" /> Import JSON
-              </Button>
-            </div>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/10 rounded-lg">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
