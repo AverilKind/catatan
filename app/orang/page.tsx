@@ -18,8 +18,10 @@ import { toast } from "sonner";
 import { useStore } from "@/store/useStore";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { formatCurrency } from "@/utils/format";
 import { PasswordPrompt } from "@/components/password-prompt";
+import { verifyPassword } from "@/app/actions/auth";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -76,10 +78,24 @@ export default function OrangPage() {
   });
 
   const [pendingAction, setPendingAction] = useState<{ type: "edit" | "delete", data?: any, id?: string } | null>(null);
+  const [verifiedPassword, setVerifiedPassword] = useState<string | null>(null);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (editingId) {
-      setPendingAction({ type: "edit", data: values, id: editingId });
+      if (!verifiedPassword) {
+        toast.error("Otorisasi tidak valid");
+        return;
+      }
+      const res = await updatePerson(editingId, values, verifiedPassword);
+      if (res?.success) {
+        toast.success("Data berhasil diubah");
+        setIsOpen(false);
+        setEditingId(null);
+        setVerifiedPassword(null);
+        form.reset();
+      } else {
+        toast.error(res?.error || "Gagal mengubah data");
+      }
     } else {
       const res = await addPerson({
         name: values.name,
@@ -100,17 +116,16 @@ export default function OrangPage() {
   const handlePasswordSubmit = async (password: string) => {
     if (!pendingAction) return;
 
-    if (pendingAction.type === "edit" && pendingAction.id) {
-      const res = await updatePerson(pendingAction.id, pendingAction.data, password);
-      if (res?.success) {
-        toast.success("Data berhasil diubah");
-        setIsOpen(false);
-        setEditingId(null);
-        form.reset();
-        setPendingAction(null);
-      } else {
-        toast.error(res?.error || "Gagal mengubah data");
-      }
+    const isValid = await verifyPassword(password);
+    if (!isValid) {
+      toast.error("Password salah");
+      return;
+    }
+
+    if (pendingAction.type === "edit" && pendingAction.data) {
+      setVerifiedPassword(password);
+      openEdit(pendingAction.data);
+      setPendingAction(null);
     } else if (pendingAction.type === "delete" && pendingAction.id) {
       const res = await deletePerson(pendingAction.id, password);
       if (res?.success) {
@@ -165,7 +180,7 @@ export default function OrangPage() {
                   <Eye className="mr-2 h-4 w-4" /> Detail
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => openEdit(person)}>
+              <DropdownMenuItem onClick={() => setPendingAction({ type: "edit", data: person })}>
                 <Edit className="mr-2 h-4 w-4" /> Edit
               </DropdownMenuItem>
               <DropdownMenuItem

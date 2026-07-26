@@ -59,6 +59,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { formatCurrency } from "@/utils/format";
 import { PasswordPrompt } from "@/components/password-prompt";
+import { verifyPassword } from "@/app/actions/auth";
 
 const formSchema = z.object({
   personId: z.string().min(1, { message: "Orang wajib dipilih" }),
@@ -88,10 +89,24 @@ export default function TransaksiPage() {
   });
 
   const [pendingAction, setPendingAction] = useState<{ type: "edit" | "delete", data?: any, id?: string } | null>(null);
+  const [verifiedPassword, setVerifiedPassword] = useState<string | null>(null);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (editingId) {
-      setPendingAction({ type: "edit", data: values, id: editingId });
+      if (!verifiedPassword) {
+        toast.error("Otorisasi tidak valid");
+        return;
+      }
+      const res = await updateTransaction(editingId, values, verifiedPassword);
+      if (res?.success) {
+        toast.success("Transaksi berhasil diubah");
+        setIsOpen(false);
+        setEditingId(null);
+        setVerifiedPassword(null);
+        form.reset();
+      } else {
+        toast.error(res?.error || "Gagal mengubah transaksi");
+      }
     } else {
       const res = await addTransaction({
         ...values,
@@ -110,17 +125,16 @@ export default function TransaksiPage() {
   const handlePasswordSubmit = async (password: string) => {
     if (!pendingAction) return;
 
-    if (pendingAction.type === "edit" && pendingAction.id) {
-      const res = await updateTransaction(pendingAction.id, pendingAction.data, password);
-      if (res?.success) {
-        toast.success("Transaksi berhasil diubah");
-        setIsOpen(false);
-        setEditingId(null);
-        form.reset();
-        setPendingAction(null);
-      } else {
-        toast.error(res?.error || "Gagal mengubah transaksi");
-      }
+    const isValid = await verifyPassword(password);
+    if (!isValid) {
+      toast.error("Password salah");
+      return;
+    }
+
+    if (pendingAction.type === "edit" && pendingAction.data) {
+      setVerifiedPassword(password);
+      openEdit(pendingAction.data);
+      setPendingAction(null);
     } else if (pendingAction.type === "delete" && pendingAction.id) {
       const res = await deleteTransaction(pendingAction.id, password);
       if (res?.success) {
@@ -204,7 +218,7 @@ export default function TransaksiPage() {
         const transaction = row.original;
         return (
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => openEdit(transaction)} title="Edit">
+            <Button variant="ghost" size="icon" onClick={() => setPendingAction({ type: "edit", data: transaction })} title="Edit">
               <Edit className="h-4 w-4 text-blue-500" />
             </Button>
             <Button
