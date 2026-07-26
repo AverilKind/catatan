@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { PasswordPrompt } from "@/components/password-prompt";
 import { resetAllData } from "@/app/actions/settings";
+import { verifyPassword } from "@/app/actions/auth";
 import { useState } from "react";
 
 export default function PengaturanPage() {
@@ -69,20 +70,27 @@ export default function PengaturanPage() {
   };
 
   const handleResetDataClick = () => {
-    if (confirm("PERINGATAN: Semua data orang dan transaksi akan dihapus secara permanen. Apakah Anda yakin?")) {
-      setShowPasswordPrompt(true);
-    }
+    setShowPasswordPrompt(true);
   };
 
   const handlePasswordSubmit = async (password: string) => {
-    const res = await resetAllData(password);
-    if (res.success) {
-      toast.success("Seluruh data berhasil direset");
-      setShowPasswordPrompt(false);
-      // optionally trigger a refetch if we don't rely entirely on server component reload
-      window.location.reload();
+    const isValid = await verifyPassword(password);
+    if (!isValid) {
+      toast.error("Password salah");
+      return;
+    }
+
+    if (confirm("PERINGATAN: Semua data orang dan transaksi akan dihapus secara permanen. Apakah Anda yakin?")) {
+      const res = await resetAllData(password);
+      if (res.success) {
+        toast.success("Seluruh data berhasil direset");
+        setShowPasswordPrompt(false);
+        window.location.reload();
+      } else {
+        toast.error(res.error || "Gagal mereset data");
+      }
     } else {
-      toast.error(res.error || "Gagal mereset data");
+      setShowPasswordPrompt(false);
     }
   };
 
