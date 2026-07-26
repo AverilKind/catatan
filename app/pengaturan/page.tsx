@@ -30,9 +30,11 @@ export default function PengaturanPage() {
       try {
         const parsed = JSON.parse(localData);
         if (parsed.state && (parsed.state.people?.length > 0 || parsed.state.transactions?.length > 0)) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setHasLocalData(true);
         }
-      } catch (e) {}
+      } catch (e) {
+        // ignore
     }
   }, []);
 
