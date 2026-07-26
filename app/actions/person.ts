@@ -40,8 +40,12 @@ export async function addPerson(data: { name: string; phone?: string; address?: 
   }
 }
 
-export async function updatePerson(id: string, data: { name: string; phone?: string; address?: string; notes?: string }) {
+export async function updatePerson(id: string, data: { name: string; phone?: string; address?: string; notes?: string }, password?: string) {
   try {
+    if (password !== process.env.ADMIN_PASSWORD) {
+      return { success: false, error: "Password salah atau tidak diisi." };
+    }
+    
     const person = await prisma.person.update({
       where: { id },
       data,
@@ -54,8 +58,12 @@ export async function updatePerson(id: string, data: { name: string; phone?: str
   }
 }
 
-export async function deletePerson(id: string) {
+export async function deletePerson(id: string, password?: string) {
   try {
+    if (password !== process.env.ADMIN_PASSWORD) {
+      return { success: false, error: "Password salah atau tidak diisi." };
+    }
+
     await prisma.person.delete({
       where: { id },
     });

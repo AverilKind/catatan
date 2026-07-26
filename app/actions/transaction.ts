@@ -28,8 +28,12 @@ export async function addTransaction(data: { personId: string; type: string; amo
   }
 }
 
-export async function updateTransaction(id: string, data: { personId: string; type: string; amount: number; category: string; date: string; notes?: string }) {
+export async function updateTransaction(id: string, data: { personId: string; type: string; amount: number; category: string; date: string; notes?: string }, password?: string) {
   try {
+    if (password !== process.env.ADMIN_PASSWORD) {
+      return { success: false, error: "Password salah atau tidak diisi." };
+    }
+
     const transaction = await prisma.transaction.update({
       where: { id },
       data,
@@ -44,8 +48,12 @@ export async function updateTransaction(id: string, data: { personId: string; ty
   }
 }
 
-export async function deleteTransaction(id: string) {
+export async function deleteTransaction(id: string, password?: string) {
   try {
+    if (password !== process.env.ADMIN_PASSWORD) {
+      return { success: false, error: "Password salah atau tidak diisi." };
+    }
+
     const transaction = await prisma.transaction.delete({
       where: { id },
     });

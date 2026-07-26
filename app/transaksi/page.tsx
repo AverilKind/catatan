@@ -58,6 +58,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { formatCurrency } from "@/utils/format";
+import { PasswordPrompt } from "@/components/password-prompt";
 
 const formSchema = z.object({
   personId: z.string().min(1, { message: "Orang wajib dipilih" }),
@@ -86,20 +87,49 @@ export default function TransaksiPage() {
     },
   });
 
+  const [pendingAction, setPendingAction] = useState<{ type: "edit" | "delete", data?: any, id?: string } | null>(null);
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (editingId) {
-      await updateTransaction(editingId, values);
-      toast.success("Transaksi berhasil diubah");
+      setPendingAction({ type: "edit", data: values, id: editingId });
     } else {
-      await addTransaction({
+      const res = await addTransaction({
         ...values,
         notes: values.notes || "",
       });
-      toast.success("Transaksi berhasil ditambahkan");
+      if (res?.success) {
+        toast.success("Transaksi berhasil ditambahkan");
+        setIsOpen(false);
+        form.reset();
+      } else {
+        toast.error(res?.error || "Gagal menambahkan transaksi");
+      }
     }
-    setIsOpen(false);
-    setEditingId(null);
-    form.reset();
+  };
+
+  const handlePasswordSubmit = async (password: string) => {
+    if (!pendingAction) return;
+
+    if (pendingAction.type === "edit" && pendingAction.id) {
+      const res = await updateTransaction(pendingAction.id, pendingAction.data, password);
+      if (res?.success) {
+        toast.success("Transaksi berhasil diubah");
+        setIsOpen(false);
+        setEditingId(null);
+        form.reset();
+        setPendingAction(null);
+      } else {
+        toast.error(res?.error || "Gagal mengubah transaksi");
+      }
+    } else if (pendingAction.type === "delete" && pendingAction.id) {
+      const res = await deleteTransaction(pendingAction.id, password);
+      if (res?.success) {
+        toast.success("Transaksi berhasil dihapus");
+        setPendingAction(null);
+      } else {
+        toast.error(res?.error || "Gagal menghapus transaksi");
+      }
+    }
   };
 
   const openEdit = (transaction: any) => {
@@ -181,10 +211,7 @@ export default function TransaksiPage() {
               variant="ghost"
               size="icon"
               onClick={() => {
-                if (confirm("Yakin ingin menghapus transaksi ini?")) {
-                  deleteTransaction(transaction.id);
-                  toast.success("Transaksi berhasil dihapus");
-                }
+                setPendingAction({ type: "delete", id: transaction.id });
               }}
               title="Hapus"
             >
@@ -425,6 +452,11 @@ export default function TransaksiPage() {
           </Button>
         </div>
       </div>
+      <PasswordPrompt
+        isOpen={!!pendingAction}
+        onClose={() => setPendingAction(null)}
+        onSubmit={handlePasswordSubmit}
+      />
     </AppLayout>
   );
 }

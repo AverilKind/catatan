@@ -19,6 +19,7 @@ import { useStore } from "@/store/useStore";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordPrompt } from "@/components/password-prompt";
 import {
   Table,
   TableBody,
@@ -74,22 +75,51 @@ export default function OrangPage() {
     },
   });
 
+  const [pendingAction, setPendingAction] = useState<{ type: "edit" | "delete", data?: any, id?: string } | null>(null);
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (editingId) {
-      await updatePerson(editingId, values);
-      toast.success("Data berhasil diubah");
+      setPendingAction({ type: "edit", data: values, id: editingId });
     } else {
-      await addPerson({
+      const res = await addPerson({
         name: values.name,
         phone: values.phone || "",
         address: values.address || "",
         notes: values.notes || "",
       });
-      toast.success("Data berhasil ditambahkan");
+      if (res?.success) {
+        toast.success("Data berhasil ditambahkan");
+        setIsOpen(false);
+        form.reset();
+      } else {
+        toast.error(res?.error || "Gagal menambahkan data");
+      }
     }
-    setIsOpen(false);
-    setEditingId(null);
-    form.reset();
+  };
+
+  const handlePasswordSubmit = async (password: string) => {
+    if (!pendingAction) return;
+
+    if (pendingAction.type === "edit" && pendingAction.id) {
+      const res = await updatePerson(pendingAction.id, pendingAction.data, password);
+      if (res?.success) {
+        toast.success("Data berhasil diubah");
+        setIsOpen(false);
+        setEditingId(null);
+        form.reset();
+        setPendingAction(null);
+      } else {
+        toast.error(res?.error || "Gagal mengubah data");
+      }
+    } else if (pendingAction.type === "delete" && pendingAction.id) {
+      const res = await deletePerson(pendingAction.id, password);
+      if (res?.success) {
+        toast.success("Data berhasil dihapus");
+        setPendingAction(null);
+      } else {
+        toast.error(res?.error || "Gagal menghapus data");
+      }
+    }
   };
 
   const openEdit = (person: any) => {
@@ -140,10 +170,7 @@ export default function OrangPage() {
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
-                  if (confirm("Yakin ingin menghapus orang ini?")) {
-                    deletePerson(person.id);
-                    toast.success("Data berhasil dihapus");
-                  }
+                  setPendingAction({ type: "delete", id: person.id });
                 }}
                 className="text-red-600"
               >
@@ -327,6 +354,11 @@ export default function OrangPage() {
           </Button>
         </div>
       </div>
+      <PasswordPrompt
+        isOpen={!!pendingAction}
+        onClose={() => setPendingAction(null)}
+        onSubmit={handlePasswordSubmit}
+      />
     </AppLayout>
   );
 }

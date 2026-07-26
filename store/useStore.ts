@@ -10,12 +10,12 @@ interface AsyncStoreState {
   fetchData: () => Promise<void>;
   
   addPerson: (person: { name: string; phone?: string; address?: string; notes?: string }) => Promise<void>;
-  updatePerson: (id: string, person: { name: string; phone?: string; address?: string; notes?: string }) => Promise<void>;
-  deletePerson: (id: string) => Promise<void>;
+  updatePerson: (id: string, person: { name: string; phone?: string; address?: string; notes?: string }, password?: string) => Promise<{ success: boolean; error?: string }>;
+  deletePerson: (id: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   
-  addTransaction: (transaction: { personId: string; type: string; amount: number; category: string; date: string; notes?: string }) => Promise<void>;
-  updateTransaction: (id: string, transaction: { personId: string; type: string; amount: number; category: string; date: string; notes?: string }) => Promise<void>;
-  deleteTransaction: (id: string) => Promise<void>;
+  addTransaction: (transaction: { personId: string; type: string; amount: number; category: string; date: string; notes?: string }) => Promise<{ success: boolean; error?: string }>;
+  updateTransaction: (id: string, transaction: { personId: string; type: string; amount: number; category: string; date: string; notes?: string }, password?: string) => Promise<{ success: boolean; error?: string }>;
+  deleteTransaction: (id: string, password?: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 export const useStore = create<AsyncStoreState>((set, get) => ({
@@ -44,25 +44,28 @@ export const useStore = create<AsyncStoreState>((set, get) => ({
       const current = get().people;
       set({ people: [res.data as any, ...current] });
     }
+    return res;
   },
 
-  updatePerson: async (id, updatedPerson) => {
-    const res = await updatePerson(id, updatedPerson);
+  updatePerson: async (id, updatedPerson, password) => {
+    const res = await updatePerson(id, updatedPerson, password);
     if (res.success) {
       set((state) => ({
         people: state.people.map((p) => (p.id === id ? (res.data as any) : p)),
       }));
     }
+    return res;
   },
 
-  deletePerson: async (id) => {
-    const res = await deletePerson(id);
+  deletePerson: async (id, password) => {
+    const res = await deletePerson(id, password);
     if (res.success) {
       set((state) => ({
         people: state.people.filter((p) => p.id !== id),
         transactions: state.transactions.filter((t) => t.personId !== id),
       }));
     }
+    return res;
   },
 
   addTransaction: async (transaction) => {
@@ -71,23 +74,26 @@ export const useStore = create<AsyncStoreState>((set, get) => ({
       const current = get().transactions;
       set({ transactions: [res.data as any, ...current] });
     }
+    return res;
   },
 
-  updateTransaction: async (id, updatedTransaction) => {
-    const res = await updateTransaction(id, updatedTransaction);
+  updateTransaction: async (id, updatedTransaction, password) => {
+    const res = await updateTransaction(id, updatedTransaction, password);
     if (res.success) {
       set((state) => ({
         transactions: state.transactions.map((t) => (t.id === id ? (res.data as any) : t)),
       }));
     }
+    return res;
   },
 
-  deleteTransaction: async (id) => {
-    const res = await deleteTransaction(id);
+  deleteTransaction: async (id, password) => {
+    const res = await deleteTransaction(id, password);
     if (res.success) {
       set((state) => ({
         transactions: state.transactions.filter((t) => t.id !== id),
       }));
     }
+    return res;
   },
 }));
