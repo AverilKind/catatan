@@ -11,15 +11,30 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { PasswordPrompt } from "@/components/password-prompt";
-import { resetAllData } from "@/app/actions/settings";
+import { resetAllData, migrateLocalData } from "@/app/actions/settings";
 import { verifyPassword } from "@/app/actions/auth";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function PengaturanPage() {
   const { theme, setTheme } = useTheme();
-  const { people, transactions, importData } = useStore();
+  const { people, transactions } = useStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const [showMigratePrompt, setShowMigratePrompt] = useState(false);
+  const [hasLocalData, setHasLocalData] = useState(false);
+
+  useEffect(() => {
+    // Check if there's old local data
+    const localData = localStorage.getItem("catatan-hutang-storage");
+    if (localData) {
+      try {
+        const parsed = JSON.parse(localData);
+        if (parsed.state && (parsed.state.people?.length > 0 || parsed.state.transactions?.length > 0)) {
+          setHasLocalData(true);
+        }
+      } catch (e) {}
+    }
+  }, []);
 
   const handleExportData = () => {
     const data = {
@@ -91,6 +106,43 @@ export default function PengaturanPage() {
       }
     } else {
       setShowPasswordPrompt(false);
+    }
+  };
+
+  const handleMigrateData = async (password: string) => {
+    const isValid = await verifyPassword(password);
+    if (!isValid) {
+      toast.error("Password salah");
+      return;
+    }
+
+    const localData = localStorage.getItem("catatan-hutang-storage");
+    if (!localData) {
+      toast.error("Data lokal tidak ditemukan");
+      setShowMigratePrompt(false);
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(localData);
+      const dataToMigrate = {
+        people: parsed.state?.people || [],
+        transactions: parsed.state?.transactions || []
+      };
+
+      const res = await migrateLocalData(dataToMigrate, password);
+      if (res.success) {
+        toast.success("Data lokal berhasil dimigrasi ke database online!");
+        setShowMigratePrompt(false);
+        setHasLocalData(false);
+        // Optional: clear local storage so they don't migrate again?
+        // localStorage.removeItem("catatan-hutang-storage");
+        window.location.reload();
+      } else {
+        toast.error(res.error || "Gagal memigrasi data");
+      }
+    } catch (e) {
+      toast.error("Gagal membaca data lokal");
     }
   };
 
@@ -188,16 +240,32 @@ export default function PengaturanPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/10 rounded-lg">
-              <div className="space-y-1">
-                <p className="font-medium text-red-600 dark:text-red-400">Reset Semua Data</p>
-                <p className="text-sm text-red-600/80 dark:text-red-400/80">
-                  Hapus seluruh data dari aplikasi ini secara permanen.
-                </p>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <p className="font-medium">Reset Data</p>
+                  <p className="text-sm text-muted-foreground">
+                    Hapus seluruh data dari aplikasi ini secara permanen.
+                  </p>
+                </div>
+                <Button variant="destructive" onClick={handleResetDataClick}>
+                  <Trash2 className="mr-2 h-4 w-4" /> Reset Semua Data
+                </Button>
               </div>
-              <Button variant="destructive" onClick={handleResetDataClick}>
-                <Trash2 className="mr-2 h-4 w-4" /> Reset Semua Data
-              </Button>
             </div>
+
+            {hasLocalData && (
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6 pt-6 border-t">
+                <div>
+                  <p className="font-medium text-blue-600 dark:text-blue-400">Migrasi Data Lokal</p>
+                  <p className="text-sm text-muted-foreground">
+                    Kami mendeteksi Anda memiliki data lama yang tersimpan di memori browser ini. Klik tombol ini untuk memindahkannya ke Database Online.
+                  </p>
+                </div>
+                <Button onClick={() => setShowMigratePrompt(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Upload className="mr-2 h-4 w-4" /> Migrasi ke Database
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -205,6 +273,11 @@ export default function PengaturanPage() {
         isOpen={showPasswordPrompt}
         onClose={() => setShowPasswordPrompt(false)}
         onSubmit={handlePasswordSubmit}
+      />
+      <PasswordPrompt
+        isOpen={showMigratePrompt}
+        onClose={() => setShowMigratePrompt(false)}
+        onSubmit={handleMigrateData}
       />
     </AppLayout>
   );
