@@ -10,11 +10,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { PasswordPrompt } from "@/components/password-prompt";
+import { resetAllData } from "@/app/actions/settings";
+import { useState } from "react";
 
 export default function PengaturanPage() {
   const { theme, setTheme } = useTheme();
-  const { people, transactions, importData, resetData } = useStore();
+  const { people, transactions, importData } = useStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
 
   const handleExportData = () => {
     const data = {
@@ -64,14 +68,21 @@ export default function PengaturanPage() {
     reader.readAsText(file);
   };
 
-  const handleResetData = () => {
-    if (
-      confirm(
-        "PERINGATAN: Semua data orang dan transaksi akan dihapus secara permanen. Apakah Anda yakin?"
-      )
-    ) {
-      resetData();
+  const handleResetDataClick = () => {
+    if (confirm("PERINGATAN: Semua data orang dan transaksi akan dihapus secara permanen. Apakah Anda yakin?")) {
+      setShowPasswordPrompt(true);
+    }
+  };
+
+  const handlePasswordSubmit = async (password: string) => {
+    const res = await resetAllData(password);
+    if (res.success) {
       toast.success("Seluruh data berhasil direset");
+      setShowPasswordPrompt(false);
+      // optionally trigger a refetch if we don't rely entirely on server component reload
+      window.location.reload();
+    } else {
+      toast.error(res.error || "Gagal mereset data");
     }
   };
 
@@ -175,13 +186,18 @@ export default function PengaturanPage() {
                   Hapus seluruh data dari aplikasi ini secara permanen.
                 </p>
               </div>
-              <Button variant="destructive" onClick={handleResetData}>
-                <Trash2 className="mr-2 h-4 w-4" /> Hapus Data
+              <Button variant="destructive" onClick={handleResetDataClick}>
+                <Trash2 className="mr-2 h-4 w-4" /> Reset Semua Data
               </Button>
             </div>
           </CardContent>
         </Card>
       </div>
+      <PasswordPrompt
+        isOpen={showPasswordPrompt}
+        onClose={() => setShowPasswordPrompt(false)}
+        onSubmit={handlePasswordSubmit}
+      />
     </AppLayout>
   );
 }
