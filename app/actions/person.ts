@@ -2,6 +2,7 @@
 
 import prisma from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { appendToSheet } from "@/lib/google-sheets";
 
 export async function getPeople() {
   try {
@@ -34,6 +35,21 @@ export async function addPerson(data: { name: string; phone?: string; address?: 
   try {
     const person = await prisma.person.create({ data });
     revalidatePath("/orang");
+
+    // Sync to Google Sheets
+    // Format: [ID, Nama, No HP, Alamat, Keterangan, Tanggal Dibuat]
+    const sheetData = [
+      person.id,
+      person.name,
+      person.phone || "-",
+      person.address || "-",
+      person.notes || "-",
+      new Date(person.createdAt).toLocaleString('id-ID')
+    ];
+    
+    // We don't await this so it doesn't block the UI response
+    appendToSheet("Orang", sheetData);
+
     return { success: true, data: person };
   } catch (error: any) {
     return { success: false, error: error.message };

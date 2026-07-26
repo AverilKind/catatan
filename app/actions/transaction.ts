@@ -2,6 +2,7 @@
 
 import prisma from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { appendToSheet } from "@/lib/google-sheets";
 
 export async function getTransactions() {
   try {
@@ -22,6 +23,26 @@ export async function addTransaction(data: { personId: string; type: string; amo
     revalidatePath("/laporan");
     revalidatePath("/");
     revalidatePath(`/orang/${data.personId}`);
+
+    // Get the person details for the sheet (optional but useful)
+    const person = await prisma.person.findUnique({ where: { id: data.personId } });
+
+    // Sync to Google Sheets
+    // Format: [ID, Tanggal, Nama, Jenis, Jumlah, Kategori, Keterangan, Tanggal Dibuat]
+    const sheetData = [
+      transaction.id,
+      new Date(transaction.date).toLocaleDateString('id-ID'),
+      person?.name || data.personId,
+      transaction.type === "debt" ? "Hutang" : "Bayar",
+      transaction.amount.toString(),
+      transaction.category,
+      transaction.notes || "",
+      new Date(transaction.createdAt).toLocaleString('id-ID')
+    ];
+    
+    // We don't await this so it doesn't block the UI response
+    appendToSheet("Transaksi", sheetData);
+
     return { success: true, data: transaction };
   } catch (error: any) {
     return { success: false, error: error.message };
